@@ -5,31 +5,31 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
+
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import tw.edu.pu.csim.s1113426.s1113426.ui.theme.S1113426Theme
-import android.content.pm.ActivityInfo
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.platform.LocalContext
-import android.app.Activity
-import androidx.compose.material3.Button
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.gestures.draggable
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.LocalContext
+import android.content.pm.ActivityInfo
+import tw.edu.pu.csim.s1113426.s1113426.ui.theme.S1113426Theme
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.material3.Button
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.TextStyle
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.sp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,10 +39,7 @@ class MainActivity : ComponentActivity() {
             S1113426Theme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
-                    Greeting(
-                        name = "2024期末上機考(資管三B林彗靖)",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    GameScreen(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
@@ -50,63 +47,93 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    // 定義背景顏色的列表
+fun GameScreen(modifier: Modifier = Modifier) {
+    // 遊戲持續時間
+    var gameTime by remember { mutableStateOf(0) }
+    var gameOver by remember { mutableStateOf(false) }
+
+    // 瑪利亞的x座標 (從左到右)
+    var mariaX by remember { mutableStateOf(0f) }
+    var currentColorIndex by remember { mutableStateOf(0) }
+
+    // 顏色列表
     val colors = listOf(
         Color(0xff95fe95),
         Color(0xfffdca0f),
         Color(0xfffea4a4),
         Color(0xffa5dfed)
     )
-
-    // 使用 remember 和 mutableStateOf 來儲存當前的顏色索引
-    var currentColorIndex by remember { mutableStateOf(0) }
     val currentColor = colors[currentColorIndex]
 
-    // 監聽拖曳手勢
-    var dragOffset by remember { mutableStateOf(0f) }
+    // CoroutineScope來啟動計時和移動瑪利亞
+    val scope = rememberCoroutineScope()
 
+    // 當遊戲未結束時啟動計時器
+    if (!gameOver) {
+        // 啟動計時器
+        scope.launch {
+            while (!gameOver) {
+                delay(1000) // 每秒鐘執行一次
+                if (!gameOver) {
+                    gameTime += 1 // 每秒增加1秒
+                    mariaX += 50f // 每秒向右移動50像素
+                    if (mariaX > 1080f) { // 假設螢幕寬度是1080像素
+                        gameOver = true
+                    }
+                }
+            }
+        }
+    }
+
+    // 更新顏色（可選）
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(currentColor) // 設置背景顏色
-            .draggable(
-                state = rememberDraggableState { delta ->
-                    dragOffset += delta
-                },
-                orientation = androidx.compose.foundation.gestures.Orientation.Horizontal // 僅監聽水平拖曳
-            ),
+            .background(currentColor) // 背景顏色
+            .padding(16.dp),
         contentAlignment = Alignment.Center // 讓內容置中顯示
     ) {
-        // 如果拖曳結束並且足夠大，根據方向變換顏色
-        LaunchedEffect(dragOffset) {
-            if (dragOffset > 100) { // 向右滑動，更新顏色
-                currentColorIndex = (currentColorIndex + 1) % colors.size
-                dragOffset = 0f  // 重置拖曳偏移量
-            } else if (dragOffset < -100) { // 向左滑動，更新顏色
-                currentColorIndex = (currentColorIndex - 1 + colors.size) % colors.size
-                dragOffset = 0f  // 重置拖曳偏移量
-            }
-        }
-
-        // 顯示內容
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(16.dp)
+            modifier = modifier
         ) {
-            Text(text = "$name")
+            Text(text = "2024期末上機考(資管三B林彗靖)")
             Image(
                 painter = painterResource(id = R.drawable.class_b),
                 contentDescription = "B班",
                 contentScale = ContentScale.FillBounds,
-                modifier = Modifier.padding(top = 16.dp)
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
             )
-            Text(text = "遊戲持續時間 0 秒", modifier = modifier.padding(top = 16.dp))
+            Text(
+                text = "遊戲持續時間: $gameTime 秒",
+                style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            )
             Text(text = "您的成績 0 分", modifier = modifier)
 
+            // 顯示瑪利亞圖示，請確認已經放入圖片檔案 maria2.png
+            Image(
+                painter = painterResource(id = R.drawable.maria2), // 載入圖片資源
+                contentDescription = "瑪利亞",
+                modifier = Modifier
+                    .offset(x = mariaX.dp) // 移動圖示位置
+                    //.size(200.dp) // 圖示寬高設置為200.dp
+                    .width(200.dp)
+                    .height(200.dp),
+            contentScale = ContentScale.FillBounds
+            )
+
+            // 顯示結束遊戲訊息
+            if (gameOver) {
+                Text(
+                    text = "遊戲結束！",
+                    style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold),
+                    color = Color.Red
+                )
+            }
+
             // 拿到 Activity 參照
-            val activity = (LocalContext.current as? Activity)
+            val activity = (LocalContext.current as? android.app.Activity)
 
             // 結束應用的按鈕
             Button(
@@ -123,8 +150,8 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
+fun GameScreenPreview() {
     S1113426Theme {
-        Greeting("Android")
+        GameScreen()
     }
 }
