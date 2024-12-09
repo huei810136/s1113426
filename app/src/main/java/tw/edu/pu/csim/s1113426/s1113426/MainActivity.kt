@@ -6,7 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,6 +21,7 @@ import android.content.pm.ActivityInfo
 import tw.edu.pu.csim.s1113426.s1113426.ui.theme.S1113426Theme
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material3.Button
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.TextStyle
@@ -30,6 +30,8 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.random.Random
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,6 +66,11 @@ fun GameScreen(modifier: Modifier = Modifier) {
         Color(0xffa5dfed)
     )
     val currentColor = colors[currentColorIndex]
+
+    // 隨機選擇瑪利亞圖片的ID
+    var mariaImage by remember { mutableStateOf(R.drawable.maria0) }
+    // 顯示分數
+    var score by remember { mutableStateOf(0) }
 
     // CoroutineScope來啟動計時和移動瑪利亞
     val scope = rememberCoroutineScope()
@@ -109,18 +116,20 @@ fun GameScreen(modifier: Modifier = Modifier) {
                 text = "遊戲持續時間: $gameTime 秒",
                 style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold)
             )
-            Text(text = "您的成績 0 分", modifier = modifier)
+            Text(
+                text = "您的成績: $score 分",
+                style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            )
 
-            // 顯示瑪利亞圖示，請確認已經放入圖片檔案 maria2.png
+            // 顯示瑪利亞圖示，請確認已經放入圖片檔案 maria0…3.jpg
             Image(
-                painter = painterResource(id = R.drawable.maria2), // 載入圖片資源
+                painter = painterResource(id = mariaImage), // 載入圖片資源
                 contentDescription = "瑪利亞",
                 modifier = Modifier
                     .offset(x = mariaX.dp) // 移動圖示位置
-                    //.size(200.dp) // 圖示寬高設置為200.dp
                     .width(200.dp)
                     .height(200.dp),
-            contentScale = ContentScale.FillBounds
+                contentScale = ContentScale.FillBounds
             )
 
             // 顯示結束遊戲訊息
@@ -145,6 +154,36 @@ fun GameScreen(modifier: Modifier = Modifier) {
                 Text(text = "結束App，按了會關閉這個應用程式")
             }
         }
+
+        // 監聽雙擊事件
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onDoubleTap = {
+                            // 判斷背景顏色是否與Box背景顏色相同
+                            if (currentColor == colors[currentColorIndex]) {
+                                score += 1 // 顏色相同，得分
+                            } else {
+                                score -= 1 // 顏色不同，扣分
+                            }
+
+                            // 隨機選擇瑪利亞圖片
+                            val randomImageIndex = Random.nextInt(0, 4) // 隨機選擇0-3的圖片
+                            mariaImage = when (randomImageIndex) {
+                                0 -> R.drawable.maria0
+                                1 -> R.drawable.maria1
+                                2 -> R.drawable.maria2
+                                else -> R.drawable.maria3
+                            }
+
+                            // 重置瑪利亞位置，從左下角開始
+                            mariaX = 0f
+                        }
+                    )
+                }
+        )
     }
 }
 
